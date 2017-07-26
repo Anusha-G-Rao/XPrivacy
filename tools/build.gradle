@@ -4,7 +4,7 @@ buildscript {
 	}
 
 	dependencies {
-		classpath 'com.android.tools.build:gradle:0.12+'
+		classpath 'com.android.tools.build:gradle:2.3+'
 	}
 }
 
@@ -12,8 +12,9 @@ apply plugin: 'com.android.application'
 
 dependencies {
 	compile files('libs/android-support-v13.jar')
-	compile files('substrate-api.jar')
-	provided files('XposedBridgeApi-54.jar')
+	compile files('assets/substrate-api.jar')
+	provided files('assets/XposedBridgeApi-20150213.jar')//'XposedBridgeApi-54.jar')
+
 }
 
 android {

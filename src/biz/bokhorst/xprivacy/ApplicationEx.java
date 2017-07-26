@@ -16,6 +16,7 @@ public class ApplicationEx extends Application {
 			@Override
 			public void uncaughtException(Thread thread, Throwable ex) {
 				Util.bug(null, ex);
+				ex.printStackTrace();
 				if (mPrevHandler != null)
 					mPrevHandler.uncaughtException(thread, ex);
 			}
