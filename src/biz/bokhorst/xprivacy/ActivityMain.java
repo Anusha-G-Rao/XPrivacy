@@ -173,7 +173,7 @@ public class ActivityMain extends ActivityBase implements OnItemSelectedListener
 		super.onCreate(savedInstanceState);
 
 		final int userId = Util.getUserId(Process.myUid());
-
+		Util.log(null, Log.ERROR, " Log in Activity "+this.getPackageManager().getNameForUid(Process.myUid())+" "+Process.myUid());
 		// Check privacy service client
 		if (!PrivacyService.checkClient())
 			return;

@@ -15,6 +15,8 @@ import android.content.pm.PackageManager;
 import android.content.pm.ProviderInfo;
 import android.content.pm.ResolveInfo;
 
+// TODO : (Anusha) Where are the method names obtained from ?
+
 public class XPackageManager extends XHook {
 	private Methods mMethod;
 	private String mClassName;

@@ -688,15 +688,28 @@ public class PrivacyService extends IPrivacyService.Stub {
 		return mresult;
 	}
 
+	// TODO : User data is stored here. add time and package name (Anusha)
+
+	/**
+	 * (Anusha comments)
+	 * This methos is called during app boot.
+	 * Assumption : Called only during boot, all apps have restrictions on installation.
+	 * @param restriction
+	 * @param secret
+	 * @param mresult
+	 * @throws RemoteException
+	 */
 	private void storeUsageData(final PRestriction restriction, String secret, final PRestriction mresult)
 			throws RemoteException {
 		// Check if enabled
 		final int userId = Util.getUserId(restriction.uid);
+
 		if (getSettingBool(userId, PrivacyManager.cSettingUsage, true)
 				&& !getSettingBool(restriction.uid, PrivacyManager.cSettingNoUsageData, false)) {
 			// Check secret
 			boolean allowed = true;
 			if (Util.getAppId(Binder.getCallingUid()) != getXUid()) {
+				// This avoids storing user information from different apps.S (Anusha)
 				if (mSecret == null || !mSecret.equals(secret)) {
 					allowed = false;
 					Util.log(null, Log.WARN, "Invalid secret restriction=" + restriction);
@@ -727,12 +740,46 @@ public class PrivacyService extends IPrivacyService.Stub {
 								try {
 									dbUsage.beginTransaction();
 									try {
+										//TODO : (Anusha) Add installed time and time string to save in Database.S
+										Util.log(null, Log.ERROR, " Log in Service "+getContext().getPackageManager().getNameForUid(restriction.uid)+" "+restriction.uid);
+										String packageName = getContext().getPackageManager().getNameForUid(restriction.uid);
+
 										ContentValues values = new ContentValues();
 										values.put("uid", restriction.uid);
+
+										if(packageName!=null)
+											values.put("package", packageName); // Added by anusha
+										else
+											values.put("package", ""); // Added by anusha
+
 										values.put("restriction", restriction.restrictionName);
 										values.put("method", restriction.methodName);
 										values.put("restricted", mresult.restricted);
-										values.put("time", new Date().getTime());
+										long time = new Date().getTime();
+										values.put("time", time);
+										values.put("timestring", CalendarUtils.convertMilliSecondsToFormattedDate(time));// Added by anusha
+
+										// Addition of installed time of app
+										try {
+											PackageManager pm = getContext().getPackageManager();
+											if(pm!=null) {
+												ApplicationInfo appInfo = pm.getApplicationInfo(packageName, 0);
+												if(appInfo!=null) {
+													String appFile = appInfo.sourceDir;
+													if(appFile!=null){
+														long installed = new File(appFile).lastModified();
+														values.put("installedtime", CalendarUtils.convertMilliSecondsToFormattedDate(installed));// Added by anusha
+													} else
+														values.put("installedtime", "");// Added by anusha
+												} else
+													values.put("installedtime", "");// Added by anusha
+											} else
+												values.put("installedtime", "");// Added by anusha
+										}
+										catch (NameNotFoundException ne){
+											values.put("installedtime", "");// Added by anusha
+										}
+
 										values.put("extra", extra);
 										if (restriction.value == null)
 											values.putNull("value");
@@ -1075,7 +1122,9 @@ public class PrivacyService extends IPrivacyService.Stub {
 						db.delete(cTableSetting, "uid=? AND type=? AND name=?",
 								new String[] { Integer.toString(setting.uid), setting.type, setting.name });
 					else {
+						//TODO: (Anusha) maybe records created here.
 						// Create record
+						Util.log(null, Log.ERROR, " Log in Service setting "+getContext().getPackageManager().getNameForUid(setting.uid)+" "+setting.uid);
 						ContentValues values = new ContentValues();
 						values.put("uid", setting.uid);
 						values.put("type", setting.type);
@@ -2527,7 +2576,8 @@ public class PrivacyService extends IPrivacyService.Stub {
 						try {
 							db.beginTransaction();
 							try {
-								// http://www.sqlite.org/lang_createtable.html
+								Util.log(null, Log.ERROR,"creating db");
+										// http://www.sqlite.org/lang_createtable.html
 								db.execSQL("CREATE TABLE restriction (uid INTEGER NOT NULL, restriction TEXT NOT NULL, method TEXT NOT NULL, restricted INTEGER NOT NULL)");
 								db.execSQL("CREATE TABLE setting (uid INTEGER NOT NULL, name TEXT NOT NULL, value TEXT)");
 								db.execSQL("CREATE TABLE usage (uid INTEGER NOT NULL, restriction TEXT NOT NULL, method TEXT NOT NULL, restricted INTEGER NOT NULL, time INTEGER NOT NULL)");
@@ -2820,7 +2870,9 @@ public class PrivacyService extends IPrivacyService.Stub {
 						try {
 							dbUsage.beginTransaction();
 							try {
-								dbUsage.execSQL("CREATE TABLE usage (uid INTEGER NOT NULL, restriction TEXT NOT NULL, method TEXT NOT NULL, extra TEXT NOT NULL, restricted INTEGER NOT NULL, time INTEGER NOT NULL)");
+								// (Anusha) ; Added three new columns for package name, time string and installed time string.
+								dbUsage.execSQL("CREATE TABLE usage (uid INTEGER NOT NULL,package TEXT NOT NULL,  restriction TEXT NOT NULL, method TEXT NOT NULL, extra TEXT NOT NULL, restricted INTEGER NOT NULL, time INTEGER NOT NULL, " +
+										"timestring TEXT NOT NULL, installedtime TEXT NOT NULL )");
 								dbUsage.execSQL("CREATE UNIQUE INDEX idx_usage ON usage(uid, restriction, method, extra)");
 								dbUsage.setVersion(1);
 								dbUsage.setTransactionSuccessful();
